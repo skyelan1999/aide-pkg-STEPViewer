@@ -73,16 +73,15 @@ async function start(){
  if(!info.size||info.size>384*1048576)throw Error('STEP 文件需为 1 字节至 384 MiB');
  await script('three.min.js');await script('OrbitControls.js');await script('step-metrology.js');await script('step-assembly.js');await script('step-preview.js');
  const workerURL=URL.createObjectURL(new Blob([await asset('step-import-worker.js')],{type:'text/javascript'}));urls.push(workerURL);
- let uploadStarted=false;
- function createWorker(){const worker=new Worker(workerURL),realPost=worker.postMessage.bind(worker);const wrapper={onmessage:null,onerror:null,postMessage:realPost,terminate(){worker.terminate();if(id){const current=id;id='';void io({action:'cancel',id:current}).catch(()=>{});}}};
+ function createWorker(){let uploadStarted=false,stopped=false,workerJob='';const worker=new Worker(workerURL),realPost=worker.postMessage.bind(worker);const wrapper={onmessage:null,onerror:null,postMessage:realPost,terminate(){stopped=true;worker.terminate();if(workerJob){const current=workerJob;workerJob='';if(id===current)id='';void io({action:'cancel',id:current}).catch(()=>{});}}};
  worker.onerror=e=>wrapper.onerror?.(e);worker.onmessage=async e=>{const d=e.data;if(d.kind!=='io'){wrapper.onmessage?.(e);return;}
  try{
   let result;
   if(d.action==='start'){
-   if(uploadStarted)throw Error('重复加载');uploadStarted=true;id=(await io({action:'begin',size:info.size})).id;
-   for(let offset=0;offset<info.size;){if(closed)throw Error('预览已关闭');const item=(await enqueue(()=>client.readDocument({offset,length:49152}))).result;if(!item.length)throw Error('文件传输中断');await io({action:'write',id,offset,data:item.data});offset+=item.length;wrapper.onmessage?.({data:{kind:'progress',phase:'download',loaded:offset,total:info.size}});}
-   result=await io({action:'start',id});
-  }else result=await io({action:'read',id,...d.args});
+   if(uploadStarted)throw Error('重复加载');uploadStarted=true;workerJob=(await io({action:'begin',size:info.size})).id;id=workerJob;if(stopped){await io({action:'cancel',id:workerJob});return;}
+   for(let offset=0;offset<info.size;){if(closed||stopped)throw Error('预览已关闭');const item=(await enqueue(()=>client.readDocument({offset,length:49152}))).result;if(!item.length)throw Error('文件传输中断');await io({action:'write',id:workerJob,offset,data:item.data});offset+=item.length;wrapper.onmessage?.({data:{kind:'progress',phase:'download',loaded:offset,total:info.size}});}
+   result=await io({action:'start',id:workerJob});
+  }else result=await io({action:'read',id:workerJob,...d.args});
   realPost({kind:'io-result',requestId:d.requestId,result});
  }catch(error){realPost({kind:'io-result',requestId:d.requestId,error:error.message});}};return wrapper;}
  const el=(tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=text;return e;};

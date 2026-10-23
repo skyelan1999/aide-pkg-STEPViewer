@@ -169,4 +169,5 @@ with tempfile.TemporaryDirectory() as d:
 print(json.dumps({'status':'pass','nestedAssemblyPlacement':True,'partAndFaceColours':True,'allFacesMeshed':True,'nurbsFallbackRetainsTrimmedFace':True,'mixedAndPureWirePointGeometry':True,'collapsedFacesRetainBoundaryAndWarning':True,'zeroWidthTrimOnly':True,'mmMetreInch':True,'finiteNormalsAndBatchBounds':True}))
 '''
 if __name__=='__main__':
-    subprocess.run(['docker','run','--rm','--network','none','--memory','1g','--cpus','2','-e','PYTHONPATH=/opt/aide-cad','-e','LD_LIBRARY_PATH=/opt/aide-cad/system','-v',str(ROOT/'scripts')+':/scripts:ro','-v',str(ROOT/'internal/server/web/vendor/occt-import-js')+':/fixtures:ro','--entrypoint','python3',sys.argv[1] if len(sys.argv)>1 else 'aide:local','-c',PROGRAM],check=True,timeout=180)
+ program=PROGRAM.replace('/scripts/cad/convert.py','/pkg/native/convert.py').replace('/scripts/fixtures/cad/fidelity.step','/pkg/tests/fidelity.step').replace('/fixtures/occt-import-js-0.0.23-source.tgz','/pkg/tests/upstream-fixtures/occt-import-js-0.0.23-source.tgz')
+ subprocess.run(['docker','run','--rm','--network=none','--memory=1g','-e','PYTHONPATH=/opt/aide-cad','-e','LD_LIBRARY_PATH=/opt/aide-cad/system','-v',str(ROOT)+':/pkg:ro','--entrypoint','python3',sys.argv[1] if len(sys.argv)>1 else 'aide-step-engine:arm64','-c',program],check=True,timeout=180)

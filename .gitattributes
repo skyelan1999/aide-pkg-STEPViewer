@@ -1,2 +1,3 @@
 # Preserve generated STEP fixtures byte-for-byte, including exchange formatting.
 tests/*.step -whitespace
+licenses/** -whitespace
