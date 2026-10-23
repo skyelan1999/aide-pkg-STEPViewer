@@ -1,0 +1,94 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>STEP Viewer</title><style>.stl-viewer{display:flex;flex-direction:column;height:100%;min-height:400px}
+.step-viewer{display:flex;flex-direction:column;height:100%;min-height:400px}
+.step-error{box-sizing:border-box;max-width:560px;margin:auto;padding:28px;color:var(--text);text-align:center;line-height:1.6}
+.step-error strong{font-size:16px}
+.step-error p{color:var(--text-dim);font-size:13px}
+.stl-toolbar{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line-faint);flex-shrink:0}
+.stl-info{font-size:11px;font-weight:600;color:var(--text);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stl-meta{font-size:10px;color:var(--muted);font-family:ui-monospace,monospace}
+.stl-ctrl{padding:3px 10px;font-size:11px;border:1px solid var(--line-mid);border-radius:5px;color:var(--text-settings);background:var(--surface)}
+.stl-ctrl:hover{background:var(--hover)}
+.stl-ctrl:last-child{margin-left:auto}
+.stl-canvas{flex:1;min-height:0;position:relative;background:#1a1a2e;border-radius:0 0 8px 8px;overflow:hidden}
+.stl-canvas canvas{display:block;width:100%!important;height:100%!important}
+.step-viewer>.stl-toolbar{flex-wrap:wrap}.step-viewer>.stl-toolbar .stl-info{min-width:100px;flex:1}.step-viewer>.stl-toolbar .stl-meta{white-space:normal;overflow-wrap:anywhere}
+.step-viewer>.stl-canvas{min-height:180px}
+.cad-tools{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:8px 12px;border-top:1px solid var(--line-faint);background:var(--surface);flex-shrink:0}
+.cad-tools .stl-ctrl{min-height:30px}.cad-tools .stl-ctrl[aria-pressed=true]{color:var(--accent-text);background:var(--code-bg);border-color:var(--accent)}
+.cad-pick-mode{font:inherit;font-size:12px;min-height:30px;max-width:130px;padding:4px 8px;color:var(--text);background:var(--surface);border:1px solid var(--line-faint);border-radius:6px}
+.cad-readout{padding:8px 12px;max-height:160px;overflow:auto;flex-shrink:0;color:var(--text);background:var(--surface);font:12px/1.6 ui-monospace,SFMono-Regular,monospace}
+.cad-status{min-height:20px;overflow-wrap:anywhere}.cad-hint{margin:2px 0 6px;color:var(--muted);font:11px/1.5 system-ui,sans-serif}.cad-records{margin:0;padding-left:24px}.cad-record{padding:3px 0;overflow-wrap:anywhere}.cad-record strong{margin-right:12px;color:var(--accent-text)}
+@media(max-width:600px){.cad-tools{padding:6px;gap:4px}.cad-tools .stl-ctrl{padding:5px 7px;font-size:11px}.cad-readout{max-height:130px;padding:6px 8px}.step-viewer>.stl-toolbar{padding:6px}.step-viewer>.stl-toolbar .stl-meta{order:2;flex-basis:100%}}
+.step-viewer .cad-readout{height:clamp(100px,16vh,150px);flex-shrink:0;box-sizing:border-box}
+.step-viewer{overflow:auto}.step-viewer>.stl-canvas{flex-shrink:0}
+.step-viewer .cad-hint{color:var(--text);opacity:.82}.cad-tools .stl-ctrl,.cad-tools .cad-pick-mode{color:var(--text)}
+.step-viewer [hidden]{display:none!important}.step-assembly-panel{flex:none;padding:10px 12px;border-bottom:1px solid var(--line);background:var(--panel);color:var(--text);font-size:12px}.step-assembly-heading{display:flex;align-items:center;gap:12px;margin-bottom:8px}.step-assembly-heading strong{font-size:12px;font-weight:550}.step-assembly-status{flex:1;color:var(--muted);font-size:11px;font-variant-numeric:tabular-nums}.step-assembly-picker{display:flex;gap:7px;flex-wrap:wrap;align-items:center}.step-assembly-picker input,.step-assembly-picker select,.step-explode-controls select{box-sizing:border-box;background:var(--field);color:var(--text);border:1px solid var(--line);border-radius:6px;padding:6px;font:inherit;min-width:0}.step-assembly-picker input{width:190px}.step-assembly-picker select{flex:1;min-width:140px;max-width:420px}.step-explode-controls{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-top:9px}.step-explode-controls input{flex:1;min-width:100px;max-width:420px;accent-color:var(--brand)}.step-explode-controls output{min-width:40px;font-variant-numeric:tabular-nums}.step-assembly-hint{margin:8px 0 0;font-size:11px;color:var(--muted);line-height:1.5}.step-viewer>.stl-toolbar .stl-ctrl[aria-pressed=true]{background:var(--selected);color:var(--brand-text);border-color:var(--brand)}.step-assembly-panel :is(button,input,select):focus-visible{outline:2px solid var(--brand);outline-offset:2px}@media(max-width:600px){.step-assembly-picker input{width:100%}.step-assembly-picker select{flex-basis:100%;max-width:none}.step-assembly-panel{padding:8px}.step-explode-controls{gap:7px}.step-assembly-panel input[type=search]{font-size:16px}}
+:root{--line:#344256;--panel:#192333;--text:#edf2fa;--text-dim:#adbbcf;--muted:#adbbcf;--field:#111b29;--brand:#70a8ff;--brand-text:#b8d5ff;--selected:#233d5a}*{box-sizing:border-box}body{margin:0;background:#192333;color:var(--text);font:13px system-ui}html,body,#viewer{height:100%}button,input,select{font:inherit}button,a{cursor:pointer}button{color:var(--text)}#setup{padding:24px;max-width:640px;margin:auto;line-height:1.8}#setup button{background:#2867b6;border:0;border-radius:7px;padding:10px 16px}#setup small{display:block;color:var(--muted)}
+</style><section id="setup"><h2>STEP Viewer</h2><p id="status">连接只读文件预览…</p><button id="install" hidden>安装 CAD 引擎并预览</button><small>仅首次安装下载独立 CAD 引擎；不改动 Aide 主包。模型在本机转换，不上传到外部服务。</small></section><main id="viewer" hidden></main><script>'use strict';
+// Bundle this source into a plugin HTML. Never load parent credentials or arbitrary host URLs.
+(function(){
+ function create(pluginId){
+  if(typeof pluginId!=='string'||!/^[A-Za-z0-9_-]{1,64}$/.test(pluginId))throw Error('Invalid plugin id');
+  let port=null,tools=[],capabilities=[],next=0,connecting=null,settle=null,closed=false;const pending=new Map(),listeners=new Set();
+  const revoke=reason=>{closed=true;port?.close();port=null;for(const p of pending.values()){clearTimeout(p.timer);p.reject(Error(reason));}pending.clear();if(settle){settle.reject(Error(reason));clearTimeout(settle.timer);settle=null;}window.removeEventListener('message',receive);};
+  function receive(e){const m=e.data;if(closed||port||e.source!==window.parent||m?.type!=='aide.workbench.connect'||m.protocol!==1||m.pluginId!==pluginId||!Array.isArray(m.tools)||m.tools.some(x=>typeof x!=='string')||e.ports?.length!==1)return;
+   port=e.ports[0];tools=m.tools.slice();capabilities=Array.isArray(m.capabilities)?m.capabilities.filter(x=>typeof x==='string').slice(0,16):[];port.onmessage=event=>{const value=event.data;if(value?.event==='scope.revoked'){revoke('Host scope revoked; verify effects before retry');for(const listener of listeners){try{listener(value);}catch(_){}}return;}if(value?.event){for(const listener of listeners)listener(value);return;}const p=pending.get(value?.requestId);if(!p)return;pending.delete(value.requestId);clearTimeout(p.timer);if(value.status==='error')p.reject(Error(value.error||'Host call failed'));else p.resolve(value);};port.start();clearTimeout(settle?.timer);settle?.resolve({protocol:1,tools:tools.slice(),capabilities:capabilities.slice()});settle=null;
+  }
+  window.addEventListener('message',receive);
+  function connect(){if(closed)return Promise.reject(Error('Client closed'));if(port)return Promise.resolve({protocol:1,tools:tools.slice(),capabilities:capabilities.slice()});if(!connecting){connecting=new Promise((resolve,reject)=>{settle={resolve,reject,timer:setTimeout(()=>revoke('Host bridge unavailable'),10000)};});window.parent.postMessage({type:'aide.workbench.ready',protocol:1,requestIds:'monotonic'},'*');}return connecting;}
+  async function request(method,body){await connect();if(closed||!port)throw Error('Bridge closed');if(pending.size)throw Error('A call is already pending');const requestId='r_'+(++next);return new Promise((resolve,reject)=>{const timer=setTimeout(()=>{pending.delete(requestId);reject(Error('Reply timeout; outcome uncertain, do not automatically retry'));},320000);pending.set(requestId,{resolve,reject,timer});try{port.postMessage({protocol:1,requestId,method,...body});}catch(e){pending.delete(requestId);clearTimeout(timer);reject(e);}});}
+  return {connect,
+   workflow:args=>request('workflow.control',{arguments:args}),
+   capture:args=>request('capture.control',{arguments:args}),
+   captureNetwork:args=>request('capture.network',{arguments:args}),
+   fileTarget:path=>request('file.target',{arguments:{path}}),
+   saveFile:(path,content,hash)=>request('file.save',{arguments:{path,content,hash}}),
+   documentInfo:(asset='',options={})=>request('document.info',{arguments:{asset,metadataOnly:options.metadataOnly===true}}),
+   readDocument:(args={})=>request('document.read',{arguments:args}),
+   pluginAssetInfo:(asset,options={})=>request('document.package.info',{arguments:{asset,metadataOnly:options.metadataOnly===true}}),
+   readPluginAsset:(args={})=>request('document.package.read',{arguments:args}),
+   failDocumentPreview:()=>request('document.error',{arguments:{}}),
+   setDocumentDirty:dirty=>request('document.dirty',{arguments:{dirty:dirty===true}}),
+   abortDocumentSave:()=>request('document.save.abort',{arguments:{}}),
+   beginDocumentSave:(size,version)=>request('document.save.begin',{arguments:{size,version}}),
+   writeDocumentChunk:(offset,bytes)=>{if(!(bytes instanceof Uint8Array)||bytes.byteLength>524288)throw Error('Expected Uint8Array of at most 512KiB');let binary='';for(let i=0;i<bytes.length;i+=8192)binary+=String.fromCharCode(...bytes.subarray(i,i+8192));return request('document.save.chunk',{arguments:{offset,data:btoa(binary)}});},
+   requestDocumentSave:()=>request('document.save.request',{arguments:{}}),
+
+   async saveDocument(bytes,version){if(!(bytes instanceof Uint8Array))throw Error('Expected Uint8Array');await request('document.save.begin',{arguments:{size:bytes.byteLength,version}});for(let offset=0;offset<bytes.byteLength;offset+=524288){const chunk=bytes.subarray(offset,offset+524288);let binary='';for(let i=0;i<chunk.length;i+=8192)binary+=String.fromCharCode(...chunk.subarray(i,i+8192));await request('document.save.chunk',{arguments:{offset,data:btoa(binary)}});}return request('document.save.request',{arguments:{}});},
+   async call(tool,args={},attachments=[]){await connect();if(!tools.includes(tool))throw Error('Tool not declared by this workbench');return request('tool.call',{tool,arguments:args,attachments});},proposalStatus:proposalId=>request('proposal.status',{proposalId}),onEvent(fn){listeners.add(fn);return()=>listeners.delete(fn);},close(){revoke('Client closed; verify effects before retry');}};
+ }
+ window.AideWorkbenchClient={create};
+})();
+</script><script>
+const client=AideWorkbenchClient.create('step-viewer'),$=id=>document.getElementById(id),urls=[];let id='',closed=false,teardown=()=>{};
+let queue=Promise.resolve();function enqueue(fn){const p=queue.then(fn);queue=p.catch(()=>{});return p;}
+async function io(args){return (await enqueue(()=>client.call('step_preview_io',args))).result;}
+async function asset(name){const size=(await enqueue(()=>client.pluginAssetInfo('assets/'+name))).result.size,bytes=new Uint8Array(size);for(let offset=0;offset<size;){const item=(await enqueue(()=>client.readPluginAsset({asset:'assets/'+name,offset,length:524288}))).result;const b=Uint8Array.from(atob(item.data),c=>c.charCodeAt(0));if(!b.length)throw Error('资源读取中断');bytes.set(b,offset);offset+=b.length;}return bytes;}
+async function script(name){const url=URL.createObjectURL(new Blob([await asset(name)],{type:'text/javascript'}));urls.push(url);await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=url;s.onload=resolve;s.onerror=()=>reject(Error('资源加载失败 '+name));document.head.append(s);});}
+async function cleanup(){closed=true;teardown();if(id){const current=id;id='';try{await io({action:'cancel',id:current});}catch(_){}}for(const u of urls)URL.revokeObjectURL(u);}
+client.onEvent(e=>{if(e.event==='scope.revoked')void cleanup();});window.addEventListener('pagehide',()=>void cleanup());
+async function start(){
+ $('setup').hidden=true;$('viewer').hidden=false;
+ const info=(await enqueue(()=>client.documentInfo('',{metadataOnly:true}))).result;
+ if(!info.size||info.size>384*1048576)throw Error('STEP 文件需为 1 字节至 384 MiB');
+ await script('three.min.js');await script('OrbitControls.js');await script('step-metrology.js');await script('step-assembly.js');await script('step-preview.js');
+ const workerURL=URL.createObjectURL(new Blob([await asset('step-import-worker.js')],{type:'text/javascript'}));urls.push(workerURL);
+ let uploadStarted=false;
+ function createWorker(){const worker=new Worker(workerURL),realPost=worker.postMessage.bind(worker);const wrapper={onmessage:null,onerror:null,postMessage:realPost,terminate(){worker.terminate();if(id){const current=id;id='';void io({action:'cancel',id:current}).catch(()=>{});}}};
+ worker.onerror=e=>wrapper.onerror?.(e);worker.onmessage=async e=>{const d=e.data;if(d.kind!=='io'){wrapper.onmessage?.(e);return;}
+ try{
+  let result;
+  if(d.action==='start'){
+   if(uploadStarted)throw Error('重复加载');uploadStarted=true;id=(await io({action:'begin',size:info.size})).id;
+   for(let offset=0;offset<info.size;){if(closed)throw Error('预览已关闭');const item=(await enqueue(()=>client.readDocument({offset,length:49152}))).result;if(!item.length)throw Error('文件传输中断');await io({action:'write',id,offset,data:item.data});offset+=item.length;wrapper.onmessage?.({data:{kind:'progress',phase:'download',loaded:offset,total:info.size}});}
+   result=await io({action:'start',id});
+  }else result=await io({action:'read',id,...d.args});
+  realPost({kind:'io-result',requestId:d.requestId,result});
+ }catch(error){realPost({kind:'io-result',requestId:d.requestId,error:error.message});}};return wrapper;}
+ const el=(tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=text;return e;};
+ await AideStepPreview.setup({container:$('viewer'),filePath:info.path||'model.step',el,t:(s,...args)=>s.replace(/\{(\d+)\}/g,(_,i)=>args[i]??''),fileRawUrl:()=>'',teardownViewer:()=>teardown(),bindViewerTeardown:(_,fn)=>teardown=fn,detectWebGLContext:()=>{const c=document.createElement('canvas'),g=c.getContext('webgl2')||c.getContext('webgl');if(!g)return false;g.getExtension('WEBGL_lose_context')?.loseContext();return true;},ensureThreeStack:async()=>{},ensureVendorScript:async()=>{},createWorker});
+}
+async function boot(){try{await client.connect();const status=await io({action:'status'});if(status.ready)await start();else{$('status').textContent='首次预览需安装独立 CAD 引擎。';$('install').hidden=false;}}catch(e){$('setup').hidden=false;$('viewer').hidden=true;$('status').textContent=e.message;}}
+$('install').onclick=async()=>{try{$('install').disabled=true;$('status').textContent='正在下载并校验 CAD 引擎…';await io({action:'install',confirm:true});await start();}catch(e){$('status').textContent=e.message;$('install').disabled=false;}};
+void boot();
+</script></html>

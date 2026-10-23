@@ -1,0 +1,12 @@
+{
+  "linux-arm64": {
+    "url": "https://github.com/skyelan1999/aide-pkg-STEPViewer/releases/download/v0.1.0/step-engine-linux-arm64.tar.gz",
+    "sha256": "a6862e6e49381342c087ec2cbb8eb5cc65188a031aa7d4aad80680d4abd230d5",
+    "bytes": 70412008
+  },
+  "linux-x64": {
+    "url": "https://github.com/skyelan1999/aide-pkg-STEPViewer/releases/download/v0.1.0/step-engine-linux-amd64.tar.gz",
+    "sha256": "b18f34912430611a7f784ef739b9bb4ec7562bfac29452faef43ad883246b5fd",
+    "bytes": 78056484
+  }
+}

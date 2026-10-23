@@ -1,0 +1,25 @@
+{
+  "id": "step-viewer",
+  "name": "STEP Viewer",
+  "version": "0.1.0",
+  "description": "独立 STEP/STP 只读预览、装配爆炸图和测量；CAD 引擎按需安装，不进入 Aide 主包。",
+  "author": "skyelan1999",
+  "license": "MIT",
+  "main": "index.js",
+  "workbench": {
+    "protocol": 1,
+    "entry": "viewer.html",
+    "title": "STEP Viewer",
+    "tools": [
+      "step_preview_io"
+    ],
+    "fileHandler": {
+      "extensions": [
+        ".stp",
+        ".step"
+      ],
+      "priority": 10,
+      "editable": false
+    }
+  }
+}
