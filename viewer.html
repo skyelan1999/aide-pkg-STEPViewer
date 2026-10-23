@@ -87,7 +87,13 @@ async function start(){
  const el=(tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=text;return e;};
  await AideStepPreview.setup({container:$('viewer'),filePath:info.path||'model.step',el,t:(s,...args)=>s.replace(/\{(\d+)\}/g,(_,i)=>args[i]??''),fileRawUrl:()=>'',teardownViewer:()=>teardown(),bindViewerTeardown:(_,fn)=>teardown=fn,detectWebGLContext:()=>{const c=document.createElement('canvas'),g=c.getContext('webgl2')||c.getContext('webgl');if(!g)return false;g.getExtension('WEBGL_lose_context')?.loseContext();return true;},ensureThreeStack:async()=>{},ensureVendorScript:async()=>{},createWorker});
 }
-async function boot(){try{await client.connect();const status=await io({action:'status'});if(status.ready)await start();else{$('status').textContent='首次预览需安装独立 CAD 引擎。';$('install').hidden=false;}}catch(e){$('setup').hidden=false;$('viewer').hidden=true;$('status').textContent=e.message;}}
-$('install').onclick=async()=>{try{$('install').disabled=true;$('status').textContent='正在下载并校验 CAD 引擎…';await io({action:'install',confirm:true});await start();}catch(e){$('status').textContent=e.message;$('install').disabled=false;}};
+async function waitInstall(){
+ $('install').disabled=true;$('install').hidden=false;
+ while(!closed){const s=await io({action:'status'});if(s.ready){await start();return;}if(!s.installing)throw Error(s.error||'引擎安装已停止，请重试续传');
+ const phases={download:'正在下载 CAD 引擎',retry:'下载中断，正在续传',verify:'正在校验并安装 CAD 引擎'};
+ $('status').textContent=(phases[s.phase]||'正在准备 CAD 引擎')+(s.total?' · '+(s.loaded/1048576).toFixed(1)+' / '+(s.total/1048576).toFixed(1)+' MB':'')+'。关闭预览后下载仍会继续。';await new Promise(r=>setTimeout(r,1500));}
+}
+async function boot(){try{await client.connect();const status=await io({action:'status'});if(status.ready)await start();else if(status.installing)await waitInstall();else{$('status').textContent=status.error||'首次预览需安装独立 CAD 引擎。';$('install').hidden=false;}}catch(e){$('setup').hidden=false;$('viewer').hidden=true;$('status').textContent=e.message;$('install').disabled=false;}}
+$('install').onclick=async()=>{try{await io({action:'install',confirm:true});await waitInstall();}catch(e){$('status').textContent=e.message;$('install').disabled=false;}};
 void boot();
 </script></html>

@@ -6,26 +6,18 @@ function init(){fs.mkdirSync(JOBS,{recursive:true,mode:0o700});}
 function job(id){if(!/^[a-f0-9]{48}$/.test(id||''))throw Error('Invalid job');const dir=path.join(JOBS,id);if(!fs.lstatSync(dir).isDirectory()||fs.lstatSync(dir).isSymbolicLink())throw Error('Invalid job');return dir;}
 function ready(){return fs.existsSync(path.join(ENGINE,'OCP'))&&fs.existsSync(path.join(ENGINE,'READY'));}
 function checkedInt(n,max){if(!Number.isSafeInteger(n)||n<0||n>max)throw Error('Invalid byte range');return n;}
-async function install(){
+function setupStatus(){try{const s=JSON.parse(fs.readFileSync(path.join(ROOT,'setup.json'),'utf8'));if(s.installing&&Date.now()-fs.statSync(path.join(ROOT,'setup.lock')).mtimeMs>=3700000)return{installing:false,error:'引擎安装已超时，请重试续传'};return s;}catch(_){return{};}}
+function install(){
  init();if(ready())return{ready:true};
- const key=process.platform+'-'+process.arch,entry=require('./runtime/catalog.json')[key];if(!entry)throw Error('当前平台暂无 CAD 引擎，请使用 Linux ARM64/AMD64 Aide 容器。');
- const tmp=fs.mkdtempSync(path.join(ROOT,'install-'));
- try{
-  const archive=path.join(tmp,'engine.tar.gz');let bytes=0;
-  const response=await fetch(entry.url,{signal:AbortSignal.timeout(240000)});if(!response.ok)throw Error('CAD 引擎下载失败 HTTP '+response.status);
-  const hash=crypto.createHash('sha256'),fd=fs.openSync(archive,'wx',0o600);
-  try{for await(const chunk of response.body){bytes+=chunk.length;if(bytes>entry.bytes)throw Error('引擎大小异常');hash.update(chunk);fs.writeFileSync(fd,chunk);}}finally{fs.closeSync(fd);}
-  if(bytes!==entry.bytes||hash.digest('hex')!==entry.sha256)throw Error('引擎摘要验证失败');
-  const output=path.join(tmp,'engine');fs.mkdirSync(output);
-  cp.execFileSync('python3',[path.join(__dirname,'native/install.py'),archive,output],{timeout:30000,stdio:'pipe'});
-  cp.execFileSync('python3',['-c','from OCP.STEPCAFControl import STEPCAFControl_Reader; import OCP; assert OCP.__version__=="8.0.1.1"'],{env:{...process.env,PYTHONPATH:output,LD_LIBRARY_PATH:path.join(output,'system')},timeout:30000,stdio:'pipe'});
-  fs.writeFileSync(path.join(output,'READY'),entry.sha256,{mode:0o600});
-  try{fs.renameSync(output,ENGINE);}catch(e){if(!ready())throw e;}
-  return{ready:true};
- }finally{fs.rmSync(tmp,{recursive:true,force:true});}
+ const lock=path.join(ROOT,'setup.lock'),state=setupStatus();
+ if(fs.existsSync(lock)&&Date.now()-fs.statSync(lock).mtimeMs<3700000)return{...state,ready:false,installing:true};
+ try{fs.unlinkSync(lock);}catch(_){}const fd=fs.openSync(lock,'wx',0o600);fs.closeSync(fd);
+ fs.writeFileSync(path.join(ROOT,'setup.json'),JSON.stringify({installing:true,phase:'download',loaded:0}),{mode:0o600});
+ try{const p=cp.spawn(process.execPath,[path.join(__dirname,'native/runtime-installer.js')],{detached:true,stdio:'ignore',env:process.env});p.unref();}catch(e){fs.unlinkSync(lock);throw e;}
+ return{ready:false,installing:true};
 }
 async function io(a){
- init();if(a.action==='status')return{ready:ready(),limit:LIMIT};
+ init();if(a.action==='status')return{...setupStatus(),ready:ready(),limit:LIMIT};
  if(a.action==='install'){if(a.confirm!==true)throw Error('请点击安装 CAD 引擎确认下载');return install();}
  if(a.action==='begin'){
   const lock=path.join(ROOT,'admission');try{fs.mkdirSync(lock);}catch(_){if(Date.now()-fs.lstatSync(lock).mtimeMs>10000){fs.rmdirSync(lock);fs.mkdirSync(lock);}else throw Error('STEP 会话正在建立，请稍后重试');}
