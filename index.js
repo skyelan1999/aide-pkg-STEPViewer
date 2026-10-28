@@ -1,7 +1,7 @@
 'use strict';
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),cp=require('node:child_process');
 const ROOT=path.join(require('node:os').homedir(),'.cache','aide-step-viewer'),JOBS=path.join(ROOT,'jobs'),ENGINE=path.join(ROOT,'engine');
-const LIMIT=384*1048576,CHUNK=48*1024;
+const LIMIT=384*1048576,CHUNK=48*1024,OUTPUT_LIMIT=require('./native/limits.json').maxOutputBytes;
 function init(){fs.mkdirSync(JOBS,{recursive:true,mode:0o700});}
 function job(id){if(!/^[a-f0-9]{48}$/.test(id||''))throw Error('Invalid job');const dir=path.join(JOBS,id);if(!fs.lstatSync(dir).isDirectory()||fs.lstatSync(dir).isSymbolicLink())throw Error('Invalid job');return dir;}
 function ready(){return fs.existsSync(path.join(ENGINE,'OCP'))&&fs.existsSync(path.join(ENGINE,'READY'));}
@@ -43,7 +43,7 @@ async function io(a){
   return{started:true};
  }
  if(a.action==='read'){
-  const offset=checkedInt(a.offset,160*1048576),file=path.join(d,'output'),length=fs.existsSync(file)?fs.statSync(file).size:0;if(offset>length)throw Error('Invalid output offset');
+  const offset=checkedInt(a.offset,OUTPUT_LIMIT),file=path.join(d,'output'),length=fs.existsSync(file)?fs.statSync(file).size:0;if(offset>length)throw Error('Invalid output offset');
   const bytes=Buffer.alloc(Math.min(CHUNK,length-offset));if(bytes.length){const fd=fs.openSync(file,'r');try{fs.readSync(fd,bytes,0,bytes.length,offset);}finally{fs.closeSync(fd);}}
   return{data:bytes.toString('base64'),offset:offset+bytes.length,done:fs.existsSync(path.join(d,'done'))&&offset+bytes.length===length};
  }

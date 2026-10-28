@@ -1,5 +1,6 @@
 """Bounded detached conversion. An abandoned bridge loses its lease in 30s."""
 import json,os,pathlib,resource,signal,subprocess,sys,time,shutil
+limits=json.loads(pathlib.Path(__file__).with_name('limits.json').read_text())
 root=pathlib.Path(sys.argv[1]);proc=None
 def memory_room():
  try:
@@ -7,7 +8,7 @@ def memory_room():
   return 2**63 if limit=='max' else int(limit)-int((base/'memory.current').read_text())
  except (OSError,ValueError):return 2**63
 try:
- resource.setrlimit(resource.RLIMIT_FSIZE,(160*1024*1024,160*1024*1024))
+ resource.setrlimit(resource.RLIMIT_FSIZE,(limits['maxOutputBytes'],limits['maxOutputBytes']))
  resource.setrlimit(resource.RLIMIT_AS,(1024**3,1024**3))
  deadline=time.monotonic()+900
  while not (root/'started').exists():

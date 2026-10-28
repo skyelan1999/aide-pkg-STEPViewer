@@ -1,0 +1,9 @@
+{
+  "maxTriangles": 3000000,
+  "batchTriangles": 16000,
+  "maxSegments": 500000,
+  "maxPoints": 200000,
+  "batchPrimitives": 16000,
+  "maxOutputBytes": 603979776,
+  "metadataReserveBytes": 67108864
+}

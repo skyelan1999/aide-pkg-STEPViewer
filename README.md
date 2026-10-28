@@ -13,3 +13,9 @@ Runtime is separately distributed for Linux ARM64/AMD64 containers, not macOS/Wi
 Tests: `python3 tests/install.py`, `node tests/worker.cjs`, `node tests/step-metrology.test.cjs`, `node tests/step-assembly.test.cjs`; native IO and full converter fidelity run inside the pinned Linux engine environment. `scripts/package.py` produces the plugin ZIP without tests, caches or the heavyweight engine.
 
 MIT wrapper; bundled Three.js is MIT, and separately downloaded OCP/OCCT retain their original licenses in licenses/. The workbench client derives from Aide's MIT-licensed public bridge.
+
+## 当前修复分支（Aide #585，尚未发布）
+
+转换作业与分块读取共用 `native/limits.json`。输出文件上限提高到576MiB，覆盖300万三角面的约432MB base64几何，以及已声明线段/点预算和64MiB协议元数据预留；仍维持明确文件上限、1GiB进程地址空间和取消/超时机制。具体模型仍可能因几何复杂度、元数据或内存预算被拒绝，不能仅凭三角面数保证所有模型成功。
+
+验证：真实作业OS文件限制的稀疏文件测试和读取跨越旧160MiB边界的桥接测试，不冒充300万三角面真实CAD转换或浏览器GPU验收。
