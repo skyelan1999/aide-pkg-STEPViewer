@@ -78,8 +78,30 @@ async function start(){
  try{
   let result;
   if(d.action==='start'){
-   if(uploadStarted)throw Error('重复加载');uploadStarted=true;workerJob=(await io({action:'begin',size:info.size})).id;id=workerJob;if(stopped){await io({action:'cancel',id:workerJob});return;}
-   for(let offset=0;offset<info.size;){if(closed||stopped)throw Error('预览已关闭');const item=(await enqueue(()=>client.readDocument({offset,length:49152}))).result;if(!item.length)throw Error('文件传输中断');await io({action:'write',id:workerJob,offset,data:item.data});offset+=item.length;wrapper.onmessage?.({data:{kind:'progress',phase:'download',loaded:offset,total:info.size}});}
+   if(uploadStarted)throw Error('重复加载');uploadStarted=true;
+   // Reload reuses this worker factory. The selected path can have been replaced
+   // by a CAD generator since setup, so never reuse its old byte count.
+   const currentInfo=(await enqueue(()=>client.documentInfo('',{metadataOnly:true}))).result;
+   if(!Number.isSafeInteger(currentInfo.size)||currentInfo.size<1||currentInfo.size>384*1048576)throw Error('STEP 文件需为 1 字节至 384 MiB');
+   workerJob=(await io({action:'begin',size:currentInfo.size})).id;id=workerJob;if(stopped){await io({action:'cancel',id:workerJob});return;}
+   for(let offset=0;offset<currentInfo.size;){
+    if(closed||stopped)throw Error('预览已关闭');
+    const item=(await enqueue(()=>client.readDocument({offset,length:524288}))).result;
+    if(item.size!==undefined&&item.size!==currentInfo.size)throw Error('文件大小已变化，请重新加载预览');
+    if(!Number.isSafeInteger(item.length)||item.length<=0||item.length>Math.min(524288,currentInfo.size-offset))throw Error('文件传输中断，字节位置 '+offset);
+    if((item.offset!==undefined&&item.offset!==offset)||typeof item.data!=='string')throw Error('文件传输块无效，字节位置 '+offset);
+    const binary=atob(item.data);if(binary.length!==item.length)throw Error('文件传输块无效，字节位置 '+offset);
+    // Document reads allow 512KiB responses, but tool.call requests retain the
+    // host's 256KiB JSON envelope and Linux's per-argv limit. Split each read
+    // into 64KiB writes without changing either host gate.
+    for(let sent=0;sent<item.length;sent+=65536){
+     if(closed||stopped)throw Error('预览已关闭');
+     const chunk=binary.slice(sent,sent+65536);
+     await io({action:'write',id:workerJob,offset:offset+sent,data:btoa(chunk)});
+     wrapper.onmessage?.({data:{kind:'progress',phase:'download',loaded:offset+sent+chunk.length,total:currentInfo.size}});
+    }
+    offset+=item.length;
+   }
    result=await io({action:'start',id:workerJob});
   }else result=await io({action:'read',id:workerJob,...d.args});
   realPost({kind:'io-result',requestId:d.requestId,result});

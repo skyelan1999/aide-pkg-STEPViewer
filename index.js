@@ -1,7 +1,12 @@
 'use strict';
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),cp=require('node:child_process');
 const ROOT=path.join(require('node:os').homedir(),'.cache','aide-step-viewer'),JOBS=path.join(ROOT,'jobs'),ENGINE=path.join(ROOT,'engine');
-const LIMIT=384*1048576,CHUNK=48*1024,OUTPUT_LIMIT=require('./native/limits.json').maxOutputBytes;
+// Base64 plus the plugin request must fit the Linux host's single argv limit,
+// as well as the workbench's JSON envelope. Keep decoded writes at 64KiB.
+const LIMIT=384*1048576,CHUNK=48*1024,UPLOAD_CHUNK=64*1024,OUTPUT_LIMIT=require('./native/limits.json').maxOutputBytes;
+// The bound-document bridge permits one reply to take 320 seconds. A live
+// request must not lose its private job before that request can complete.
+const LEASE_MS=330000;
 function init(){fs.mkdirSync(JOBS,{recursive:true,mode:0o700});}
 function job(id){if(!/^[a-f0-9]{48}$/.test(id||''))throw Error('Invalid job');const dir=path.join(JOBS,id);if(!fs.lstatSync(dir).isDirectory()||fs.lstatSync(dir).isSymbolicLink())throw Error('Invalid job');return dir;}
 function ready(){return fs.existsSync(path.join(ENGINE,'OCP'))&&fs.existsSync(path.join(ENGINE,'READY'));}
@@ -24,17 +29,25 @@ async function io(a){
   try{
   if(!ready())throw Error('请先安装 CAD 引擎');checkedInt(a.size,LIMIT);if(!a.size)throw Error('Empty STEP');
   // One conversion/upload across workspaces; stale jobs expire without touching user files.
-  for(const name of fs.readdirSync(JOBS)){if(!/^[a-f0-9]{48}$/.test(name))continue;const d=path.join(JOBS,name);if(Date.now()-fs.statSync(d).mtimeMs>120000){fs.writeFileSync(path.join(d,'cancel'),'');if(!fs.existsSync(path.join(d,'started')))fs.rmSync(d,{recursive:true,force:true});}else if(!fs.existsSync(path.join(d,'done'))&&!fs.existsSync(path.join(d,'cancel')))throw Error('已有 STEP 正在加载，请关闭或等待后重试');}
+  for(const name of fs.readdirSync(JOBS)){if(!/^[a-f0-9]{48}$/.test(name))continue;const d=path.join(JOBS,name);if(Date.now()-fs.statSync(d).mtimeMs>LEASE_MS){fs.writeFileSync(path.join(d,'cancel'),'');if(!fs.existsSync(path.join(d,'started')))fs.rmSync(d,{recursive:true,force:true});}else if(!fs.existsSync(path.join(d,'done'))&&!fs.existsSync(path.join(d,'cancel')))throw Error('已有 STEP 正在加载，请关闭或等待后重试');}
   const id=crypto.randomBytes(24).toString('hex'),d=path.join(JOBS,id);fs.mkdirSync(d,{mode:0o700});fs.writeFileSync(path.join(d,'size'),String(a.size),{mode:0o600});fs.writeFileSync(path.join(d,'model.step'),'',{mode:0o600});
   const proc=cp.spawn('python3',[path.join(__dirname,'native/job.py'),d,path.join(__dirname,'native/convert.py')],{detached:true,stdio:'ignore',env:{...process.env,PYTHONPATH:ENGINE,LD_LIBRARY_PATH:path.join(ENGINE,'system'),PYTHONUNBUFFERED:'1'}});proc.unref();return{id};
   }finally{fs.rmdirSync(lock);}
  }
  const d=job(a.id);fs.utimesSync(d,new Date(),new Date());
  if(a.action==='cancel'){fs.writeFileSync(path.join(d,'cancel'),'');return{cancelled:true};}
+ if((a.action==='write'||a.action==='start')&&fs.existsSync(path.join(d,'done'))){
+  // The worker removes its upload at terminal state. Return its bounded reason
+  // instead of trying to stat a source that has deliberately been reclaimed.
+  let reason='STEP 会话已结束，请重新加载';
+  try{const file=path.join(d,'output');if(fs.statSync(file).size<=4096){const row=JSON.parse(fs.readFileSync(file,'utf8').trim());if(typeof row.error==='string')reason=row.error.slice(0,500);}}catch(_){}
+  throw Error(reason);
+ }
  if(a.action==='write'){
   if(fs.existsSync(path.join(d,'started'))||fs.existsSync(path.join(d,'cancel')))throw Error('Job closed');
-  if(typeof a.data!=='string'||a.data.length>CHUNK*4/3||!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(a.data))throw Error('Invalid chunk');
+  if(typeof a.data!=='string'||a.data.length>4*Math.ceil(UPLOAD_CHUNK/3)||a.data.length%4!==0||!/^[A-Za-z0-9+/]*={0,2}$/.test(a.data))throw Error('Invalid chunk');
   const bytes=Buffer.from(a.data,'base64'),file=path.join(d,'model.step'),offset=checkedInt(a.offset,LIMIT),size=Number(fs.readFileSync(path.join(d,'size'),'utf8'));
+  if(bytes.length>UPLOAD_CHUNK||bytes.toString('base64')!==a.data)throw Error('Invalid chunk');
   if(offset!==fs.statSync(file).size||!bytes.length||offset+bytes.length>size)throw Error('Invalid upload offset');fs.appendFileSync(file,bytes);return{offset:offset+bytes.length};
  }
  if(a.action==='start'){
