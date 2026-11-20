@@ -6,7 +6,7 @@ Install the plugin ZIP in Aide, enable it, then open a `.step` or `.stp` file. O
 
 The original native OCCT converter preserves millimeter/metre/inch units, assembly transforms, part/face colors, mixed solid/wire/point geometry, bounded batches, measurement, coordinate calibration and assembly explode controls. Inputs remain read-only. Limits: 384 MiB input, 3 million triangles, 500,000 segments, 200,000 points, 15-minute conversion deadline. Complex models can still exceed memory/geometry limits. The converter is capped at 1 GiB address space and stops when the container memory margin falls below 128 MiB; large assemblies may need more available memory. Rendering requires WebGL. No geometry editing or STEP export is provided.
 
-File access uses the existing bound-document MessagePort bridge (including supported read-only references); it has no arbitrary file path or parent bearer access. The trusted Node backend receives only bounded uploaded chunks and opaque random job IDs. Closing/revoking a view stops polling and conversion loses its lease within 30 seconds; temporary jobs are reclaimed. Original files are never overwritten. Without this plugin Aide offers a download/install hint.
+File access uses the existing bound-document MessagePort bridge (including supported read-only references); it has no arbitrary file path or parent bearer access. The trusted Node backend receives bounded 64 KiB uploaded chunks and opaque random job IDs. Closing/revoking a view sends cancellation; abandoned jobs are reclaimed after a 330-second lease. Original files are never overwritten. Without this plugin Aide offers a download/install hint.
 
 Runtime is separately distributed for Linux ARM64/AMD64 containers, not macOS/Windows native Python. The cache persists outside the image; removing the plugin does not remove the downloaded engine. See [runtime build and source provenance](runtime/README.md).
 
@@ -14,8 +14,8 @@ Tests: `python3 tests/install.py`, `node tests/worker.cjs`, `node tests/step-met
 
 MIT wrapper; bundled Three.js is MIT, and separately downloaded OCP/OCCT retain their original licenses in licenses/. The workbench client derives from Aide's MIT-licensed public bridge.
 
-## 当前修复分支（Aide #585，尚未发布）
+## 0.1.3
 
-转换作业与分块读取共用 `native/limits.json`。输出文件上限提高到576MiB，覆盖300万三角面的约432MB base64几何，以及已声明线段/点预算和64MiB协议元数据预留；仍维持明确文件上限、1GiB进程地址空间和取消/超时机制。具体模型仍可能因几何复杂度、元数据或内存预算被拒绝，不能仅凭三角面数保证所有模型成功。
+保留活动的 STEP 上传作业，跨过宿主桥接调用的等待窗口；每次上传块仍限 64 KiB，作业使用 330 秒租约，关闭预览时仍可立即取消。转换输出上限为 576 MiB，覆盖 300 万三角面的约 432 MB base64 几何，以及已声明线段/点预算和 64 MiB 协议元数据预留；仍维持明确文件上限、1 GiB 进程地址空间和 15 分钟转换期限。复杂模型仍可能因几何数量、内存或 WebGL 限制无法预览。
 
-验证：真实作业OS文件限制的稀疏文件测试和读取跨越旧160MiB边界的桥接测试，不冒充300万三角面真实CAD转换或浏览器GPU验收。
+验证覆盖活动上传/转换租约、取消、内存预算、576 MiB 稀疏输出上限及跨越旧 160 MiB 边界的桥接读取；不代表已对 300 万三角面真实 CAD 模型或浏览器 GPU 完整性作验收。
