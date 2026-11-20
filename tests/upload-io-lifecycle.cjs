@@ -6,6 +6,7 @@ fs.mkdirSync(path.join(engine,'OCP'),{recursive:true});fs.writeFileSync(path.joi
 const context={module:{exports:{}},Buffer,process:{env:{}},__dirname:path.resolve(__dirname,'..'),require(name){
  if(name==='node:os')return {homedir:()=>temporary};
  if(name==='node:child_process')return {spawn:()=>({unref(){}})};
+ if(name==='./native/limits.json')return require('../native/limits.json');
  return require(name);
 }};
 vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../index.js'),'utf8'),context);
