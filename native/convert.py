@@ -15,11 +15,13 @@ import os
 import sys
 import time
 
-MAX_TRIANGLES = 3_000_000
-BATCH_TRIANGLES = 16_000
-MAX_SEGMENTS = 500_000
-MAX_POINTS = 200_000
-BATCH_PRIMITIVES = 16_000
+with open(os.path.join(os.path.dirname(__file__), 'limits.json'), encoding='utf-8') as _limits_file:
+    _limits = json.load(_limits_file)
+MAX_TRIANGLES = _limits['maxTriangles']
+BATCH_TRIANGLES = _limits['batchTriangles']
+MAX_SEGMENTS = _limits['maxSegments']
+MAX_POINTS = _limits['maxPoints']
+BATCH_PRIMITIVES = _limits['batchPrimitives']
 
 def emit(value):
     sys.stdout.write(json.dumps(value, separators=(',', ':'), allow_nan=False) + '\n')

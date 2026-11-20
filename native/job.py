@@ -1,12 +1,13 @@
 """Bounded detached conversion; lease covers one 320s bridge reply plus margin."""
 import json,os,pathlib,resource,signal,subprocess,sys,time,shutil
 from memory_budget import available_memory
+limits=json.loads(pathlib.Path(__file__).with_name('limits.json').read_text())
 root=pathlib.Path(sys.argv[1]);proc=None
 LEASE_SECONDS=330
 def memory_room():
  return available_memory()
 try:
- resource.setrlimit(resource.RLIMIT_FSIZE,(160*1024*1024,160*1024*1024))
+ resource.setrlimit(resource.RLIMIT_FSIZE,(limits['maxOutputBytes'],limits['maxOutputBytes']))
  resource.setrlimit(resource.RLIMIT_AS,(1024**3,1024**3))
  deadline=time.monotonic()+900
  while not (root/'started').exists():
